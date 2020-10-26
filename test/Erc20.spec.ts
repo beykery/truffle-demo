@@ -4,7 +4,8 @@ import { MaxUint256 } from "ethers/constants";
 import { bigNumberify, hexlify, keccak256, defaultAbiCoder, toUtf8Bytes } from "ethers/utils";
 import { solidity, MockProvider, deployContract } from "ethereum-waffle";
 import { BN, ecsign } from "ethereumjs-util";
-import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
+import TestERC20 from "../build/contracts/TestERC20.json";
+import { expandTo18Decimals, getApprovalDigest } from "./shared/util";
 
 chai.use(solidity);
 
@@ -18,9 +19,13 @@ describe("Erc20", () => {
   });
   const [wallet, other] = provider.getWallets();
 
-  let token: Contract;
+  const TOTAL_SUPPLY = expandTo18Decimals(10000);
+  const TEST_AMOUNT = expandTo18Decimals(1);
+  const test_address: String = "0x8aCc161acB2626505755bBF36184841B8c099806";
+
+  let token: Contract;   // erc20
   beforeEach(async () => {
-    token = await deployContract(wallet, ERC20, ["test", "test"]);
+    token = await deployContract(wallet, TestERC20, ["test", "test", wallet.address, TOTAL_SUPPLY]);
     console.log(token.address);
   });
 
@@ -29,11 +34,26 @@ describe("Erc20", () => {
     expect(name).to.eq("test");
     expect(await token.symbol()).to.eq("test");
     expect(await token.decimals()).to.eq(18);
-    expect(await token.totalSupply()).to.eq(0);
-    expect(await token.balanceOf(wallet.address)).to.eq("");
+    expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY);
+    expect(await token.balanceOf(wallet.address)).to.eq(TOTAL_SUPPLY);
     const ret = await token.balanceOf(wallet.address);
     console.log(ret);
     console.log("done .");
+  });
+
+  it("approve", async () => {
+    await expect(token.approve(test_address, TEST_AMOUNT))
+      .to.emit(token, "Approval")
+      .withArgs(wallet.address, test_address, TEST_AMOUNT);
+    expect(await token.allowance(wallet.address, test_address)).to.eq(TEST_AMOUNT);
+  });
+
+  it("transfer", async () => {
+    await expect(token.transfer(test_address, TEST_AMOUNT))
+      .to.emit(token, "Transfer")
+      .withArgs(wallet.address, test_address, TEST_AMOUNT);
+    expect(await token.balanceOf(wallet.address)).to.eq(TOTAL_SUPPLY.sub(TEST_AMOUNT));
+    expect(await token.balanceOf(test_address)).to.eq(TEST_AMOUNT);
   });
 
 });
