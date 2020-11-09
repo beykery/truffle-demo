@@ -100,6 +100,7 @@ module.exports = {
     },
 
     // Configure your compilers
+    // https://solidity.readthedocs.io/en/latest/using-the-compiler.html?highlight=evmVersion#using-the-commandline-compiler
     compilers: {
         solc: {
             version: "0.5.17",    // Fetch exact version from solc-bin (default: truffle's version)
@@ -109,7 +110,8 @@ module.exports = {
                     enabled: false,
                     runs: 200
                 },
-                evmVersion: "byzantium"
+                //evmVersion: "byzantium"
+                evmVersion: "istanbul"
             }
         },
     },
